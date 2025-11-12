@@ -1,1 +1,0 @@
-For images from kalahandibarassociationorg.
