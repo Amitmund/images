@@ -216,6 +216,58 @@ If this direction matches what you had in mind, next step is building GitHubImag
 
 ---
 
+## Question
+
+```
+Actually, I want to save the run URL. I believe, its easy for troubleshooting. Even If this is not too complex, going a custom field something CDNUpload, would even nicer ? Also I believe in the earlier way, it would become two fold, I can't directly use that as image field for a form, but use that to upload to github, generate URL, and then comeback to form and update the link. Please correct me if I am wrong with my understanding. Also, related to context, can't we have a config/system variable, where I can provide, github_token, url, repo and directory. For my each project the directory, variable name, I can use differently and use, load_dotenv(BASE_DIR / ".env"), having environment related variable. or create different file too to load example: load_dotenv(BASE_DIR/.kalaparichaya_git ) and similar for other websites too.
+```
+
+
+### Ans1:
+
+```
+1. Storing the raw URL — you're right, and it's simpler than what I set up last time
+Storing the full absolute URL directly (instead of a relative path that gets reconstructed into a URL at read time) is a legitimate, defensible choice — and honestly the more debuggable one, exactly for the reason you gave: you can eyeball the DB row and see exactly what's being served, no mental reconstruction needed.
+The good news: Django's Storage abstraction doesn't actually require the stored value to be a relative path. Here's the part I should have been clearer about last time — when Django saves a file, the string your storage's save-method returns is what gets written to the DB column, full stop. Nothing downstream re-validates or re-derives it. That means your storage layer can do the GitHub upload, get back the CDN URL, and simply hand that URL back as "the value to store" — and later, when a template asks for .url, the storage's job is just to return that same string unchanged, since it's already a complete URL. No relative-path math needed anywhere. This is a cleaner design than what I proposed before, not a compromise.
+One real gotcha this introduces, worth knowing now: Django's ImageField/FileField default to max_length=100 for the stored value, because it was designed assuming short relative filesystem paths. A jsDelivr URL (https://cdn.jsdelivr.net/gh/owner/repo@branch/folder/filename-uuid.png) will regularly blow past 100 characters. This needs an explicit larger max_length set on the custom field (e.g. 500) or you'll get silent truncation or validation errors the first time someone uploads with a longer filename. Flagging it now so it's not a surprise later.
+
+```
+
+
+## Ans2:
+
+```
+2. The "two-fold" worry — you're overestimating the problem, good instinct to check though
+You're right that something has to happen in two steps conceptually (bytes go to GitHub, then a URL comes back) — but that doesn't mean the user-facing form has to be two steps, and it doesn't mean you need a separate "upload, then come back and attach the link" flow.
+Because of the same mechanism above — storage returns whatever string it wants, Django just stores it — the entire GitHub round-trip can happen invisibly inside a single form submission. User fills out a normal form with a normal file input, hits submit once. Underneath, in that one request: Django hands the uploaded bytes to your custom storage, your storage does the GitHub API call synchronously, gets the URL back, and that's what ends up in the model field. From the user's perspective and from your view code's perspective, it's one save, exactly like a plain ImageField today. So: no second step, no "return to the form" — your original goal (feels like uploading, secretly becomes GitHub-hosted) holds up fine even with raw-URL storage. Good to double check this instinct though, since it's exactly the kind of thing that would need two steps if we'd designed it differently.
+```
+
+
+### Ans3
+
+```
+3. Config via settings/env-per-project — this removes a whole layer of complexity we didn't need
+This is the bigger realization, and it's a genuine correction to my last message, not just a tweak.
+Last time, I designed around contextvars + middleware + a per-tenant DB lookup, because I was assuming one running Django process needs to serve multiple GitHub targets simultaneously, switching per incoming request. That's real complexity, and it's justified if that's your actual situation.
+But what you're describing now — "for each project, the directory and variable names differ, loaded via .env per project" — describes a different and much simpler situation: each website is its own separate Django deployment, and each deployment only ever needs one fixed GitHub config, decided once when that project starts up, not re-decided per request. If that's accurate, you don't need contextvars, you don't need middleware, and you don't need a GitHubConfig database model at all. You just need ordinary Django settings — the same pattern you already use for DATABASES or EMAIL_HOST. Read the env vars once in settings.py via python-dotenv, expose them as a plain settings value, and the storage class just reads settings.GITHUB_CDN_... directly. No request-scoped state, no race conditions, no "what if this runs outside a request" edge case to design around.
+Worth confirming this reading is right, since it changes the whole shape of the app: is it the case that SREToolkit itself doesn't need to switch GitHub targets within a single running process (i.e., it's not that SREToolkit serves the Bar Association and Kalaparichaya as live tenants sharing one deployment) — but rather that SREToolkit, kalaparichaya.com, and any future site are each their own separate Django project, each importing this same package with their own .env? If so — much simpler build ahead. If actually the opposite (one live process needs to serve several different GitHub targets depending on which incoming tenant it is), the contextvars design from before is the right one after all, and we should keep it.
+On the filename question specifically — one small correction: you likely don't need differently-named .env files per project (like .kalaparichaya_git) at all. Since each project already lives in its own separate directory/repo, a plain .env in each project's own BASE_DIR is already unambiguous — the directory itself is what disambiguates projects, not the filename. Differently-named env files are the standard pattern for a different problem: multiple environments (dev/staging/prod) within the same project, not multiple separate projects. Unless you have a specific reason to want project-identifying filenames (e.g. syncing multiple projects' env files into one shared secrets vault where names need to stay unique), plain .env per project is simpler and matches what most tooling (Docker, CI secret injection, .gitignore templates) already expects by convention.
+Where this lands the design
+
+One CDNUploadField (nice name, and deliberately backend-agnostic — good call keeping "GitHub" out of it in case you ever swap the backend later)
+Config read once from env vars into settings.py — no per-request state
+upload_to-style per-field directory override, same as ImageField already supports, layered on top of the project-wide repo/owner/branch from settings
+Field stores the full CDN URL directly; max_length bumped up accordingly
+Single-step form usage, same as any other ImageField today
+
+Confirm the "each project is its own deployment" reading and I'll put the actual package together next.
+```
+
+
+
+---
+
+
 
 
 
