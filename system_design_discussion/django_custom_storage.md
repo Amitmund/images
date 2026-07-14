@@ -351,6 +351,47 @@ Let me know if the wrapper-object approach (option 2) is the one you want, and w
 ---
 
 
+# question: 
+
+```
+I don't want thumbnail. 
+
+class EventImage(models.Model):
+    year = models.ForeignKey(Year, related_name='images', on_delete=models.CASCADE)
+
+    # Instead of ImageField → store an external URL
+    # image = models.ImageField(upload_to='events/')
+    image_url = models.URLField(
+        max_length=500,
+        verbose_name = "Main Image URL",
+        help_text="Enter a valid image URL (e.g., https://example.com/image.jpg)"
+    )
+
+    description = models.CharField(
+        max_length=255,
+        help_text="A Description about this image."
+    )
+think of above example, but I should be able to do this one with our previous discussion way, how should we do...
+```
+
+
+# ans:
+
+```
+Good example to build against — and it actually simplifies one thing I overcomplicated last time. Let me walk through the design first, then the code.
+
+The simplification: Django's FieldFile already is the "wrapper" I mentioned
+Last time I said we'd need a small wrapper class so both {{ obj.field }} and {{ obj.field.url }} work. Turns out we don't — Django's built-in FieldFile (what you get back from any ImageField/FileField) already prints as its stored value and exposes .url separately. If our storage's url() method just returns the stored value unchanged (since the stored value already is the full CDN URL), both access patterns work automatically, for free. No custom wrapper needed — I was solving a problem Django had already solved.
+Why CDNUploadField should subclass ImageField, not URLField
+Your current image_url = models.URLField(...) gives a text input in forms/admin — someone pastes a link. To get a file picker instead, while still landing on a URL in the database, the field needs to inherit from ImageField (which is what tells Django "render a file input, validate it's really an image via Pillow") — but everything about how the bytes get stored is delegated to the Storage object, which is where GitHub+jsDelivr comes in. So: ImageField for form/validation behavior, custom Storage for where the bytes actually go. Same split we discussed conceptually before, now mapped onto your real model.
+year, not user — and this is exactly where upload_to proves itself generic
+EventImage has no user at all — it's organized by Year. This is a good test of the design: the upload_to callable we discussed for "site/user" isn't actually about users specifically — it's "pull whatever grouping makes sense from the instance being saved." For EventImage, that's instance.year instead of instance.user. Same field type, same mechanism, different callable per model — which is exactly how Django's own upload_to convention is meant to be used.
+One thing worth flagging on your example specifically
+The help_text — "Enter a valid image URL" — describes the old paste-a-link behavior. Once this becomes a real upload widget, that text will actively confuse whoever's filling out the form (they'll wonder where to paste a URL when there's a file picker instead). Small fix, but easy to miss.
+Here's the implementation:
+
+```
+
 
 
 
