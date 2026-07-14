@@ -5,10 +5,15 @@ I want to build a Progressive Web App with Django for doctors for to maintain th
 And what are the features we should be having for patient features.
 
 Features:
+
 Pagination.
+
 Slug
+
 Secutiry check on special character and binary payload protectation.
+
 (Safty on image upload, or should we just have google drive share image upload link or https://github.com/SH20RAJ/picser
+
 
 ```
 Can I have a django custom store, where user will get the option to upload a image, and internally, it should upload the image in my github(following setting) and update the database with the jsdelivr_commit link. For end user they have feel like uploading the image, but internally, it updated the jsdelivr link, which will use in rest of the app. Internally I want to have my own hosted " https://picser.pages.dev/api/public-upload" or 
