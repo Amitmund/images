@@ -63,6 +63,11 @@ Pending State: Upon registration, the doctor's account is created in a "Pending 
 
 Admin Notification: You (the system admin) receive an alert to verify their credentials.
 
+Date Filter: (If doctor select a given date, it should display all the pacent name, contact_number and its dignostic type, having a link to the pacent name, opening to the pacent details. This list also include the pacent came on followup date with its note too. (The operator need to write note, if the paceent came on the followup date.)
+
+
+Q) Doctor, key filter what they are looking (By date, By name and By dignostic) 
+
 
 ### 2. Manual Access & Subscription Approval
 Instead of integrating a complex automated payment gateway on day one, you will use an Admin Panel to manually manage access tiers:
@@ -104,15 +109,26 @@ Offline Patient Search & View: Because it's a PWA, doctors should be able to vie
 
 Patient Profiles & Demographics: Standard digital charts capturing name, age, blood group, allergies, emergency contacts, and insurance details.
 
-Electronic Health Records (EHR) & Encounters:
+
+### Electronic Health Records (EHR) & Encounters:
 
 Timeline view of past visits/consultations.
 
-Subjective notes (symptoms), Objective findings (vitals like BP, heart rate, weight), Assessment, and Plan (SOAP notes format).
+Subjective notes (symptoms), Objective findings JSON field, so we can add new fields: (Optional) (vitals like BP, heart rate, weight), Assessment, and Plan (SOAP notes format). (What is SOAP format mean? )
+
 
 Digital Prescriptions: A quick interface to add medications, dosages, frequencies, and duration, which can be generated into a downloadable or shareable summary.
 
 Lab & Report Uploads: The ability to snap a photo using a phone camera (via the PWA) or upload PDFs of lab results directly into the patient's file.
 
 Appointment Scheduler: A simple calendar view showing daily or weekly patient slots.
+
+
+
+---
+
+# Core Features for the Patient Portal
+
+
+
 
