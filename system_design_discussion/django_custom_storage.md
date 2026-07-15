@@ -391,7 +391,24 @@ The help_text — "Enter a valid image URL" — describes the old paste-a-link b
 Here's the implementation:
 
 ```
+---
+
+## Final so far
+
+```
+Architected storage module, custom field, and migration examplesArchitected storage module, custom field, and migration examplesNow your actual model, converted, with both upload_to patterns worked out as examples:Created 2 files, ran a command, read a fileCreated 2 files, ran a command, read a fileHow the pieces fit together:
+
+storage.py — GitHubCDNStorage._save() does the actual GitHub commit and returns the full CDN URL as the value Django stores. url() is just identity (return name), since name already is the URL by the time anything asks for it. exists() always returns False so we don't spend an API call per upload just to check for collisions — the UUID suffix in _save() handles uniqueness instead.
+fields.py — CDNUploadField(models.ImageField) bumps max_length to 500 (URLs are long, ImageField's default of 100 will silently truncate), forces the storage to GitHubCDNStorage(), and blocks width_field/height_field up front with a clear error rather than a confusing failure later.
+example_models.py — your real EventImage, converted, plus the Profile.avatar case from earlier for side-by-side comparison of how upload_to changes per model while the field itself doesn't.
+
+Two small things worth a decision when you actually wire this into SREToolkit:
+
+Field name — image_url still works fine as a name (it does still hold a URL), but now that it's a real upload widget rather than a paste-a-link input, you might find image reads better to future collaborators. Not required, your call.
+Year.year attribute — I guessed the field name on your Year model; if it's actually called something else, that's a one-line fix in event_image_upload_path.
+
+```
 
 
-
+---
 
