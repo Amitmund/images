@@ -120,6 +120,23 @@ The Kalahandi Bar Association question from earlier — now's the moment to deci
 ```
 
 
+## Few example
+
+```
+Updated zip now has five worked examples (more_examples.py) — blog cover, avatar, bookmark thumbnail, the events gallery pattern, and a required-field case — plus the full GitHub setup walkthrough (GITHUB_SETUP.md).
+A couple of things worth calling out from the setup guide:
+
+Public visibility is mandatory, not a preference — jsDelivr simply won't serve a private repo regardless of token permissions, so Step 1 flags that explicitly rather than letting it be a silent gotcha later.
+Token expiration — I pushed you toward setting a real expiry rather than "no expiration," with a reminder to rotate it. It's a bit more upkeep, but a token that never expires is a bigger liability sitting in .env indefinitely.
+One repo per project vs. one shared repo — the setup defaults to per-project (simpler, matches the "each deployment is separate" pattern we settled on), but I included the one-line change if you'd rather consolidate SREToolkit and kalaparichaya.com's uploads into a single repo later.
+
+One thing worth deciding before you actually wire this into models: for ServiceIcon and Bookmark, do those actually need per-user/per-type folder grouping, or would a flat icons/ and thumbnails/ folder be simpler since they're not really "owned" content the way an avatar is? Not a big deal either way, just want to check I didn't over-structure something that doesn't need it.
+```
+
+
+
+
+
 
 ---
 
